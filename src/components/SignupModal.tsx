@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Bell, Mail, User, MapPin } from "lucide-react";
+import { signupUser, SignupData } from "@/utils/apiClient";
 
 interface SignupModalProps {
   isOpen: boolean;
@@ -14,15 +15,14 @@ interface SignupModalProps {
 }
 
 const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<SignupData>({
     name: '',
     email: '',
     city: '',
     notifications: {
-      email: true,
       dailyUpdates: true,
-      weeklyDigest: false,
-      eventReminders: true
+      eventReminders: true,
+      weeklyDigest: false
     }
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -32,13 +32,14 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose }) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await signupUser(formData);
+      
       toast({
         title: "Welcome to HackIndia! 🎉",
         description: "You'll start receiving daily hackathon updates every morning at 9 AM IST.",
       });
-      setIsLoading(false);
+      
       onClose();
       
       // Reset form
@@ -47,13 +48,21 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose }) => {
         email: '',
         city: '',
         notifications: {
-          email: true,
           dailyUpdates: true,
-          weeklyDigest: false,
-          eventReminders: true
+          eventReminders: true,
+          weeklyDigest: false
         }
       });
-    }, 1500);
+    } catch (error) {
+      console.error('Signup error:', error);
+      toast({
+        title: "Signup Failed",
+        description: error instanceof Error ? error.message : "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
