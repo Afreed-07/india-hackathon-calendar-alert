@@ -7,15 +7,10 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 console.log('Supabase URL:', supabaseUrl)
 console.log('Supabase Anon Key:', supabaseAnonKey ? 'Present' : 'Missing')
 
-if (!supabaseUrl) {
-  throw new Error('VITE_SUPABASE_URL environment variable is not set. Please configure your Supabase integration.')
-}
-
-if (!supabaseAnonKey) {
-  throw new Error('VITE_SUPABASE_ANON_KEY environment variable is not set. Please configure your Supabase integration.')
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Only create the client if both URL and key are available
+export const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null
 
 export interface SignupData {
   name: string;
@@ -29,6 +24,10 @@ export interface SignupData {
 }
 
 export const signupUser = async (userData: SignupData) => {
+  if (!supabase) {
+    throw new Error('Supabase is not configured. Please connect your Lovable project to Supabase first by clicking the green Supabase button in the top right corner.')
+  }
+
   const { data, error } = await supabase.functions.invoke('signup-user', {
     body: userData
   })
