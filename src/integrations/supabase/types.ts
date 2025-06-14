@@ -9,6 +9,35 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      event_registrations: {
+        Row: {
+          event_id: string
+          id: string
+          registered_at: string
+          user_id: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          registered_at?: string
+          user_id: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          registered_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_registrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "user_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           city: string | null
@@ -33,6 +62,87 @@ export type Database = {
           id?: string
           name?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_events: {
+        Row: {
+          created_at: string
+          description: string
+          end_date: string
+          id: string
+          location: string
+          max_participants: number | null
+          name: string
+          organizer: string
+          prize: string | null
+          registration_open: boolean
+          start_date: string
+          type: string
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          end_date: string
+          id?: string
+          location: string
+          max_participants?: number | null
+          name: string
+          organizer: string
+          prize?: string | null
+          registration_open?: boolean
+          start_date: string
+          type: string
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          end_date?: string
+          id?: string
+          location?: string
+          max_participants?: number | null
+          name?: string
+          organizer?: string
+          prize?: string | null
+          registration_open?: boolean
+          start_date?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      user_preferences: {
+        Row: {
+          created_at: string
+          dark_mode: boolean
+          email_notifications: boolean
+          event_reminders: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dark_mode?: boolean
+          email_notifications?: boolean
+          event_reminders?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dark_mode?: boolean
+          email_notifications?: boolean
+          event_reminders?: boolean
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

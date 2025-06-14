@@ -1,15 +1,24 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Bell, CalendarDays, User, LogOut } from "lucide-react";
+import { Bell, CalendarDays, User, LogOut, Calendar } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { getUserRegistrations } from "@/utils/eventApi";
+import { useQuery } from "@tanstack/react-query";
 import SignupModal from "./SignupModal";
 
 const Header = () => {
   const [isSignupOpen, setIsSignupOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+
+  // Get user's event registrations
+  const { data: userRegistrations = [] } = useQuery({
+    queryKey: ['user-registrations'],
+    queryFn: getUserRegistrations,
+    enabled: !!user,
+  });
 
   const handleSignOut = async () => {
     try {
@@ -43,6 +52,15 @@ const Header = () => {
           </div>
           
           <div className="flex items-center space-x-4">
+            {user && userRegistrations.length > 0 && (
+              <div className="hidden sm:flex items-center space-x-2">
+                <Calendar className="h-4 w-4 text-blue-600" />
+                <span className="text-sm text-gray-600">
+                  {userRegistrations.length} registered event{userRegistrations.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+            )}
+            
             <Button variant="outline" size="sm" className="hidden sm:flex">
               <Bell className="h-4 w-4 mr-2" />
               Notifications

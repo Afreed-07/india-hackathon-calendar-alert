@@ -3,14 +3,53 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, MapPin, Clock, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, MapPin, Clock, Users, ChevronLeft, ChevronRight, Plus, Settings } from "lucide-react";
 import EventCard from "./EventCard";
+import CreateEventModal from "./CreateEventModal";
+import UserPreferences from "./UserPreferences";
 import { hackathonEvents } from "@/data/hackathonData";
+import { getUserEvents } from "@/utils/eventApi";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 
 const HackathonCalendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [showPreferences, setShowPreferences] = useState(false);
   const [filteredEvents, setFilteredEvents] = useState(hackathonEvents);
+  const { user } = useAuth();
+
+  // Fetch user-created events
+  const { data: userEvents = [], isLoading } = useQuery({
+    queryKey: ['user-events'],
+    queryFn: getUserEvents,
+    enabled: !!user,
+  });
+
+  // Combine static events with user-created events
+  const allEvents = React.useMemo(() => {
+    const combinedEvents = [...hackathonEvents];
+    
+    if (userEvents.length > 0) {
+      const formattedUserEvents = userEvents.map(event => ({
+        name: event.name,
+        startDate: event.start_date,
+        endDate: event.end_date,
+        location: event.location,
+        type: event.type,
+        registrationOpen: event.registration_open,
+        maxParticipants: event.max_participants,
+        prize: event.prize,
+        description: event.description,
+        website: event.website,
+        organizer: event.organizer
+      }));
+      combinedEvents.push(...formattedUserEvents);
+    }
+    
+    return combinedEvents;
+  }, [userEvents]);
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -22,11 +61,11 @@ const HackathonCalendar = () => {
 
   useEffect(() => {
     if (selectedFilter === 'all') {
-      setFilteredEvents(hackathonEvents);
+      setFilteredEvents(allEvents);
     } else {
-      setFilteredEvents(hackathonEvents.filter(event => event.type === selectedFilter));
+      setFilteredEvents(allEvents.filter(event => event.type === selectedFilter));
     }
-  }, [selectedFilter]);
+  }, [selectedFilter, allEvents]);
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     setCurrentDate(prev => {
@@ -60,6 +99,41 @@ const HackathonCalendar = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Header with Action Buttons */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Hackathon Calendar</h1>
+          <p className="text-gray-600">Discover and manage hackathon events</p>
+        </div>
+        
+        {user && (
+          <div className="flex space-x-3">
+            <Button
+              onClick={() => setShowPreferences(!showPreferences)}
+              variant="outline"
+              size="sm"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Preferences
+            </Button>
+            <Button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Event
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* User Preferences */}
+      {showPreferences && user && (
+        <div className="mb-8">
+          <UserPreferences />
+        </div>
+      )}
+
       {/* Stats Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
@@ -199,9 +273,20 @@ const HackathonCalendar = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {upcomingEvents.map((event, index) => (
-                <EventCard key={index} event={event} compact />
-              ))}
+              {isLoading ? (
+                <div className="space-y-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                upcomingEvents.map((event, index) => (
+                  <EventCard key={index} event={event} compact />
+                ))
+              )}
             </CardContent>
           </Card>
 
@@ -222,6 +307,12 @@ const HackathonCalendar = () => {
           )}
         </div>
       </div>
+
+      {/* Create Event Modal */}
+      <CreateEventModal 
+        isOpen={isCreateModalOpen} 
+        onClose={() => setIsCreateModalOpen(false)} 
+      />
     </div>
   );
 };
