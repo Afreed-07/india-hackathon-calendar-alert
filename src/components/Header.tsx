@@ -1,11 +1,32 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Bell, CalendarDays, User } from "lucide-react";
+import { Bell, CalendarDays, User, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import SignupModal from "./SignupModal";
 
 const Header = () => {
   const [isSignupOpen, setIsSignupOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed out successfully",
+        description: "You've been logged out of your account.",
+      });
+    } catch (error) {
+      console.error('Sign out error:', error);
+      toast({
+        title: "Sign out failed",
+        description: "There was an error signing you out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
@@ -26,12 +47,29 @@ const Header = () => {
               <Bell className="h-4 w-4 mr-2" />
               Notifications
             </Button>
+            
+            {user && (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600 hidden sm:block">
+                  Welcome, {user.email?.split('@')[0]}
+                </span>
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSignOut}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
+              </div>
+            )}
+            
             <Button 
               onClick={() => setIsSignupOpen(true)}
               className="bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600"
             >
               <User className="h-4 w-4 mr-2" />
-              Sign Up Free
+              Subscribe
             </Button>
           </div>
         </div>
