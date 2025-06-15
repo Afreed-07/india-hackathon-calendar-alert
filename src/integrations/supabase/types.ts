@@ -9,6 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          new_values: Json | null
+          old_values: Json | null
+          record_id: string | null
+          table_name: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       event_registrations: {
         Row: {
           event_id: string
@@ -38,6 +74,42 @@ export type Database = {
           },
         ]
       }
+      hackathon_users: {
+        Row: {
+          city: string
+          created_at: string | null
+          daily_updates: boolean | null
+          email: string
+          event_reminders: boolean | null
+          id: string
+          name: string
+          updated_at: string | null
+          weekly_digest: boolean | null
+        }
+        Insert: {
+          city: string
+          created_at?: string | null
+          daily_updates?: boolean | null
+          email: string
+          event_reminders?: boolean | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          weekly_digest?: boolean | null
+        }
+        Update: {
+          city?: string
+          created_at?: string | null
+          daily_updates?: boolean | null
+          email?: string
+          event_reminders?: boolean | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          weekly_digest?: boolean | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           city: string | null
@@ -62,6 +134,33 @@ export type Database = {
           id?: string
           name?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      rate_limits: {
+        Row: {
+          created_at: string | null
+          endpoint: string
+          id: string
+          identifier: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          identifier: string
+          request_count?: number
+          window_start?: string
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          identifier?: string
+          request_count?: number
+          window_start?: string
         }
         Relationships: []
       }
