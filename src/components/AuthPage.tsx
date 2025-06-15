@@ -158,9 +158,25 @@ const AuthPage = () => {
         if (error.message.includes('Signups not allowed for this instance')) {
           errorMessage = "Account creation is currently disabled. Please contact support or try again later.";
           console.error('SIGNUP DISABLED: Check Supabase dashboard Authentication > Settings > User Signups');
-        } else if (error.message.includes('already registered')) {
+        } else if (error.message.includes('already registered') || error.message.includes('User already registered')) {
           errorMessage = "This email is already registered. Please try logging in instead.";
           setIsLogin(true);
+          
+          // Reset form
+          setFormData({
+            name: '',
+            email: formData.email, // Keep email for login
+            password: '',
+            city: ''
+          });
+          setErrors({});
+          
+          toast({
+            title: "Account Exists",
+            description: "This email is already registered. Please sign in instead.",
+            variant: "destructive",
+          });
+          return;
         } else if (error.message.includes('weak password')) {
           errorMessage = "Password is too weak. Please choose a stronger password.";
         }
@@ -175,9 +191,11 @@ const AuthPage = () => {
 
       console.log('Signup successful, user created:', data.user?.id);
 
-      // Update the profile with city information
-      if (data.user) {
-        console.log('Updating user profile with city...');
+      // Check if user is immediately signed in (email confirmation disabled)
+      if (data.session && data.user) {
+        console.log('User immediately signed in, updating profile...');
+        
+        // Update the profile with city information
         const { error: profileError } = await supabase
           .from('profiles')
           .update({ city: sanitizeInput(formData.city) })
@@ -188,23 +206,48 @@ const AuthPage = () => {
         } else {
           console.log('Profile updated successfully');
         }
+
+        toast({
+          title: "Welcome to HackIndia! 🎉",
+          description: "Your account has been created and you're now signed in.",
+        });
+        
+        navigate('/');
+        return;
       }
 
-      toast({
-        title: "Account Created! 🎉",
-        description: "Please check your email to verify your account.",
-      });
-      
-      setIsLogin(true);
-      
-      // Reset form
-      setFormData({
-        name: '',
-        email: '',
-        password: '',
-        city: ''
-      });
-      setErrors({});
+      // Email confirmation required
+      if (data.user && !data.session) {
+        console.log('Email confirmation required');
+        
+        // Update the profile with city information for when they confirm
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ city: sanitizeInput(formData.city) })
+          .eq('id', data.user.id);
+
+        if (profileError) {
+          console.error('Profile update error:', profileError);
+        } else {
+          console.log('Profile updated successfully');
+        }
+
+        toast({
+          title: "Account Created! 🎉",
+          description: "Please check your email to verify your account.",
+        });
+        
+        setIsLogin(true);
+        
+        // Reset form
+        setFormData({
+          name: '',
+          email: '',
+          password: '',
+          city: ''
+        });
+        setErrors({});
+      }
     } catch (error) {
       console.error('Signup exception:', error);
       toast({
