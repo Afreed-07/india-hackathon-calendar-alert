@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface UserEvent {
@@ -54,27 +55,54 @@ export const getUserEvents = async () => {
 export const createEvent = async (eventData: Omit<UserEvent, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
   console.log('createEvent called with data:', eventData);
   
-  const { data: { user } } = await supabase.auth.getUser();
-  console.log('Current user from auth:', user);
+  // Get current session and user
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  console.log('Current session:', sessionData);
+  console.log('Session error:', sessionError);
   
-  if (!user) {
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  console.log('Current user from auth:', user);
+  console.log('User error:', userError);
+  
+  if (!user || !sessionData.session) {
     const error = 'User must be authenticated to create events';
     console.error(error);
+    console.error('User exists:', !!user);
+    console.error('Session exists:', !!sessionData.session);
     throw new Error(error);
   }
 
-  console.log('Inserting event into database...');
+  // Prepare the event data with user_id
+  const eventWithUserId = {
+    ...eventData,
+    user_id: user.id
+  };
+  
+  console.log('Inserting event into database with user_id:', user.id);
+  console.log('Full event data to insert:', eventWithUserId);
+  
+  // Check if we can read from user_events table first
+  console.log('Testing read access to user_events table...');
+  const { data: testData, error: testError } = await supabase
+    .from('user_events')
+    .select('id')
+    .limit(1);
+  
+  console.log('Test read result:', testData);
+  console.log('Test read error:', testError);
+
   const { data, error } = await supabase
     .from('user_events')
-    .insert({
-      ...eventData,
-      user_id: user.id
-    })
+    .insert(eventWithUserId)
     .select()
     .single();
 
   if (error) {
     console.error('Database insert error:', error);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    console.error('Error details:', error.details);
+    console.error('Error hint:', error.hint);
     throw new Error(error.message);
   }
 

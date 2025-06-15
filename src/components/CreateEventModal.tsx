@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Calendar, MapPin, Users, Award, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createEvent } from "@/utils/eventApi";
+import { debugAuthState } from "@/utils/authDebug";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -73,12 +75,15 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose }) 
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     console.log('Form submission started');
     console.log('Form data:', formData);
     console.log('User authenticated:', !!user);
+    
+    // Run auth debug to get detailed information
+    await debugAuthState();
     
     if (!user) {
       console.error('User not authenticated');
