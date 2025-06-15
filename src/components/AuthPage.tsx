@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { CalendarDays, Mail, Lock, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { validateEmail, validateName, validateCity, validatePassword, sanitizeInput } from "@/utils/inputValidation";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -18,30 +19,82 @@ const AuthPage = () => {
     password: '',
     city: ''
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    const emailValidation = validateEmail(formData.email);
+    if (!emailValidation.isValid) {
+      newErrors.email = emailValidation.error!;
+    }
+
+    const passwordValidation = validatePassword(formData.password);
+    if (!passwordValidation.isValid) {
+      newErrors.password = passwordValidation.error!;
+    }
+
+    if (!isLogin) {
+      const nameValidation = validateName(formData.name);
+      if (!nameValidation.isValid) {
+        newErrors.name = nameValidation.error!;
+      }
+
+      const cityValidation = validateCity(formData.city);
+      if (!cityValidation.isValid) {
+        newErrors.city = cityValidation.error!;
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+    
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
+        email: sanitizeInput(formData.email.toLowerCase()),
         password: formData.password,
       });
 
       if (error) {
+        let errorMessage = error.message;
+        
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Please check your email and click the confirmation link before signing in.';
+        }
+
         toast({
           title: "Login Failed",
-          description: error.message,
+          description: errorMessage,
           variant: "destructive",
         });
         return;
@@ -67,36 +120,40 @@ const AuthPage = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const redirectUrl = `${window.location.origin}/`;
       
       const { data, error } = await supabase.auth.signUp({
-        email: formData.email,
+        email: sanitizeInput(formData.email.toLowerCase()),
         password: formData.password,
         options: {
           emailRedirectTo: redirectUrl,
           data: {
-            name: formData.name,
+            name: sanitizeInput(formData.name),
           }
         }
       });
 
       if (error) {
+        let errorMessage = error.message;
+        
         if (error.message.includes('already registered')) {
-          toast({
-            title: "Account Already Exists",
-            description: "This email is already registered. Please try logging in instead.",
-            variant: "destructive",
-          });
+          errorMessage = "This email is already registered. Please try logging in instead.";
           setIsLogin(true);
-          return;
+        } else if (error.message.includes('weak password')) {
+          errorMessage = "Password is too weak. Please choose a stronger password.";
         }
         
         toast({
           title: "Signup Failed",
-          description: error.message,
+          description: errorMessage,
           variant: "destructive",
         });
         return;
@@ -106,7 +163,7 @@ const AuthPage = () => {
       if (data.user) {
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({ city: formData.city })
+          .update({ city: sanitizeInput(formData.city) })
           .eq('id', data.user.id);
 
         if (profileError) {
@@ -120,6 +177,15 @@ const AuthPage = () => {
       });
       
       setIsLogin(true);
+      
+      // Reset form
+      setFormData({
+        name: '',
+        email: '',
+        password: '',
+        city: ''
+      });
+      setErrors({});
     } catch (error) {
       console.error('Signup error:', error);
       toast({
@@ -174,8 +240,10 @@ const AuthPage = () => {
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     placeholder="Enter your full name"
                     required
-                    className="mt-1"
+                    className={`mt-1 ${errors.name ? 'border-red-500' : ''}`}
+                    maxLength={100}
                   />
+                  {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
                 </div>
               )}
 
@@ -191,8 +259,10 @@ const AuthPage = () => {
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   placeholder="your.email@example.com"
                   required
-                  className="mt-1"
+                  className={`mt-1 ${errors.email ? 'border-red-500' : ''}`}
+                  maxLength={254}
                 />
+                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
               </div>
 
               <div>
@@ -207,8 +277,10 @@ const AuthPage = () => {
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   placeholder="Enter your password"
                   required
-                  className="mt-1"
+                  className={`mt-1 ${errors.password ? 'border-red-500' : ''}`}
+                  maxLength={128}
                 />
+                {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
               </div>
 
               {!isLogin && (
@@ -224,8 +296,10 @@ const AuthPage = () => {
                     onChange={(e) => handleInputChange('city', e.target.value)}
                     placeholder="Mumbai, Delhi, Bangalore..."
                     required
-                    className="mt-1"
+                    className={`mt-1 ${errors.city ? 'border-red-500' : ''}`}
+                    maxLength={50}
                   />
+                  {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
                 </div>
               )}
 
@@ -243,7 +317,10 @@ const AuthPage = () => {
                 {isLogin ? "Don't have an account?" : "Already have an account?"}{' '}
                 <button
                   type="button"
-                  onClick={() => setIsLogin(!isLogin)}
+                  onClick={() => {
+                    setIsLogin(!isLogin);
+                    setErrors({});
+                  }}
                   className="text-blue-600 hover:text-blue-700 font-medium"
                 >
                   {isLogin ? 'Sign up' : 'Sign in'}
