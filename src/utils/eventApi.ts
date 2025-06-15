@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface UserEvent {
@@ -37,25 +36,34 @@ export interface UserPreferences {
 
 // Event management functions
 export const getUserEvents = async () => {
+  console.log('getUserEvents called');
   const { data, error } = await supabase
     .from('user_events')
     .select('*')
     .order('start_date', { ascending: true });
 
   if (error) {
+    console.error('getUserEvents error:', error);
     throw new Error(error.message);
   }
 
+  console.log('getUserEvents success:', data);
   return data as UserEvent[];
 };
 
 export const createEvent = async (eventData: Omit<UserEvent, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+  console.log('createEvent called with data:', eventData);
+  
   const { data: { user } } = await supabase.auth.getUser();
+  console.log('Current user from auth:', user);
   
   if (!user) {
-    throw new Error('User must be authenticated to create events');
+    const error = 'User must be authenticated to create events';
+    console.error(error);
+    throw new Error(error);
   }
 
+  console.log('Inserting event into database...');
   const { data, error } = await supabase
     .from('user_events')
     .insert({
@@ -66,9 +74,11 @@ export const createEvent = async (eventData: Omit<UserEvent, 'id' | 'user_id' | 
     .single();
 
   if (error) {
+    console.error('Database insert error:', error);
     throw new Error(error.message);
   }
 
+  console.log('Event created successfully:', data);
   return data as UserEvent;
 };
 

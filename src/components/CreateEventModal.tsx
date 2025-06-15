@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import { Calendar, MapPin, Users, Award, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createEvent } from "@/utils/eventApi";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 
 interface CreateEventModalProps {
   isOpen: boolean;
@@ -34,10 +34,15 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose }) 
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  console.log('CreateEventModal - User state:', user);
+  console.log('CreateEventModal - Modal isOpen:', isOpen);
 
   const createEventMutation = useMutation({
     mutationFn: createEvent,
     onSuccess: () => {
+      console.log('Event created successfully');
       queryClient.invalidateQueries({ queryKey: ['user-events'] });
       toast({
         title: "Event created successfully!",
@@ -59,6 +64,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose }) 
       });
     },
     onError: (error) => {
+      console.error('Event creation error:', error);
       toast({
         title: "Failed to create event",
         description: error.message,
@@ -70,7 +76,22 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose }) 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('Form submission started');
+    console.log('Form data:', formData);
+    console.log('User authenticated:', !!user);
+    
+    if (!user) {
+      console.error('User not authenticated');
+      toast({
+        title: "Authentication required",
+        description: "Please log in to create events.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!formData.name || !formData.description || !formData.start_date || !formData.end_date || !formData.location || !formData.organizer) {
+      console.error('Missing required fields');
       toast({
         title: "Missing required fields",
         description: "Please fill in all required fields.",
@@ -78,6 +99,8 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose }) 
       });
       return;
     }
+
+    console.log('Validation passed, creating event...');
 
     createEventMutation.mutate({
       name: formData.name,
@@ -93,6 +116,12 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose }) 
       registration_open: formData.registration_open
     });
   };
+
+  // Don't render modal if user is not authenticated
+  if (!user) {
+    console.log('User not authenticated, not rendering modal');
+    return null;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
