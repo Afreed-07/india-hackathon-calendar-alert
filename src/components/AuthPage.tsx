@@ -78,12 +78,17 @@ const AuthPage = () => {
     setIsLoading(true);
 
     try {
+      console.log('Attempting login with email:', formData.email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email: sanitizeInput(formData.email.toLowerCase()),
         password: formData.password,
       });
 
+      console.log('Login response:', { data, error });
+
       if (error) {
+        console.error('Login error details:', error);
         let errorMessage = error.message;
         
         if (error.message.includes('Invalid login credentials')) {
@@ -100,6 +105,7 @@ const AuthPage = () => {
         return;
       }
 
+      console.log('Login successful, redirecting...');
       toast({
         title: "Welcome back! 🎉",
         description: "You've successfully logged in.",
@@ -107,7 +113,7 @@ const AuthPage = () => {
       
       navigate('/');
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Login exception:', error);
       toast({
         title: "Login Failed",
         description: "An unexpected error occurred. Please try again.",
@@ -128,7 +134,9 @@ const AuthPage = () => {
     setIsLoading(true);
 
     try {
+      console.log('Attempting signup with email:', formData.email);
       const redirectUrl = `${window.location.origin}/`;
+      console.log('Redirect URL:', redirectUrl);
       
       const { data, error } = await supabase.auth.signUp({
         email: sanitizeInput(formData.email.toLowerCase()),
@@ -141,10 +149,16 @@ const AuthPage = () => {
         }
       });
 
+      console.log('Signup response:', { data, error });
+
       if (error) {
+        console.error('Signup error details:', error);
         let errorMessage = error.message;
         
-        if (error.message.includes('already registered')) {
+        if (error.message.includes('Signups not allowed for this instance')) {
+          errorMessage = "Account creation is currently disabled. Please contact support or try again later.";
+          console.error('SIGNUP DISABLED: Check Supabase dashboard Authentication > Settings > User Signups');
+        } else if (error.message.includes('already registered')) {
           errorMessage = "This email is already registered. Please try logging in instead.";
           setIsLogin(true);
         } else if (error.message.includes('weak password')) {
@@ -159,8 +173,11 @@ const AuthPage = () => {
         return;
       }
 
+      console.log('Signup successful, user created:', data.user?.id);
+
       // Update the profile with city information
       if (data.user) {
+        console.log('Updating user profile with city...');
         const { error: profileError } = await supabase
           .from('profiles')
           .update({ city: sanitizeInput(formData.city) })
@@ -168,6 +185,8 @@ const AuthPage = () => {
 
         if (profileError) {
           console.error('Profile update error:', profileError);
+        } else {
+          console.log('Profile updated successfully');
         }
       }
 
@@ -187,7 +206,7 @@ const AuthPage = () => {
       });
       setErrors({});
     } catch (error) {
-      console.error('Signup error:', error);
+      console.error('Signup exception:', error);
       toast({
         title: "Signup Failed",
         description: "An unexpected error occurred. Please try again.",
